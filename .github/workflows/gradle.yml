@@ -46,18 +46,17 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GHCR_TOKEN }}
 
-    - name: Build (and optionally publish) container image
-      run: |
-        CMD="./gradlew bootBuildImage --imageName=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-        if [ "${{ github.event_name }}" = "push" ]; then
-          CMD="$CMD --publishImage"
-        fi
-        echo "Running: $CMD"
-        eval "$CMD"
+    # Built from the repository Dockerfile rather than bootBuildImage: the image build no longer
+    # depends on Spring Boot's own Docker client, and the image keeps a shell for debugging.
+    # The Dockerfile copies build/libs/ — produced by the Gradle build step above.
+    - name: Build container image
+      run: docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest .
 
-    - name: Tag and push commit image
+    # bootBuildImage --publishImage used to push :latest on push events; docker push does it now.
+    - name: Push latest and commit images
       if: github.event_name == 'push'
       run: |
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
         docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 

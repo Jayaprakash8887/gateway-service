@@ -57,10 +57,11 @@ jobs:
       run: |
         ./gradlew build sonar
 
-    # Build Image  with  gradle
-
-    - name: Build with Gradle
-      run: ./gradlew bootBuildImage --imageName=${ECR_REPO}:${IMAGE_TAG}
+    # Built from the repository Dockerfile rather than bootBuildImage: the image build no longer
+    # depends on Spring Boot's own Docker client, and the image keeps a shell for debugging.
+    # The Dockerfile copies build/libs/ — produced by the `./gradlew build sonar` step above.
+    - name: Build container image
+      run: docker build -t ${ECR_REPO}:${IMAGE_TAG} .
 
     #  Trivy Image Scan 5
     
