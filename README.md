@@ -138,24 +138,23 @@ The `gateway` actuator endpoint is not exposed. It can read and change the route
 The actuator has no login of its own. Keep `/actuator` reachable only from inside the cluster. Do not
 route it at the ingress.
 
-## No admin endpoints
+## Permission Sync (admin endpoint)
 
-The gateway serves no endpoint of its own under `/api/permissions`.
+`POST /api/permissions/sync-to-keycloak` copies the role names in `api_permissions` to Keycloak as
+realm roles. It also **deletes** the realm roles that are not in `api_permissions`.
 
-There used to be two: `POST /api/permissions/sync-to-keycloak` and
-`GET /api/permissions/keycloak/test-connection`. They were removed.
+- It is **off by default**. Set `PERMISSION_SYNC_ENABLED=true` to turn it on.
+- Every call under `/api/permissions` needs a Bearer token.
+  - No token, or a token that is not valid: 401.
+  - A valid token without the role in `PERMISSION_SYNC_REQUIRED_ROLE` (default `permission-sync`): 403.
+- Do not route `/api/permissions` at the ingress. It is for calls from inside the cluster.
 
-- They needed no login. They were not routes, so the JWT filter of the routes never ran for them.
-- The sync created Keycloak realm roles from `api_permissions`, and deleted the realm roles that were
-  not in `api_permissions`.
-- CCE does not call them.
+How the gateway logs in to Keycloak for the sync:
 
-How permissions are managed now:
-
-- `api_permissions` is filled by SQL (see `DATABASE_PERMISSIONS_MIGRATION.md`).
-- The gateway reads `api_permissions` when it starts. Restart the gateway after you change the table.
-- The Keycloak roles are created by the deployment scripts, or by hand in the Keycloak admin console.
-
-The code that does the sync (`PermissionSyncService`, `KeycloakAdminService`) is still in the
-project, but nothing calls it. If an endpoint for it is added again, it must check a Bearer token
-and a role first.
+- **Preferred: a service account of the target realm.**
+  1. In the target realm, create a confidential client with "Service accounts" on.
+  2. Give its service account only the `manage-realm` role of the `realm-management` client.
+  3. Set `KEYCLOAK_REALM` to the target realm, `KEYCLOAK_ADMIN_CLIENT_ID` to that client and
+     `KEYCLOAK_ADMIN_CLIENT_SECRET` to its secret. Leave the username and password empty.
+- **Old way: a Keycloak admin user** (`KEYCLOAK_ADMIN_USERNAME`, `KEYCLOAK_ADMIN_PASSWORD`). Used only
+  when no client secret is set. Avoid it. The admin of the master realm can change every realm.
