@@ -154,13 +154,6 @@ public class KeycloakAdminServiceImpl implements KeycloakAdminService {
   }
 
   /**
-   * Delete realm roles that exist in Keycloak but not in database
-   *
-   * @param rolesResource Keycloak roles resource
-   * @param databaseRoles List of roles from database
-   * @return Number of roles deleted
-   */
-  /**
    * Choose how the gateway logs in to Keycloak.
    *
    * <ul>
@@ -196,6 +189,13 @@ public class KeycloakAdminServiceImpl implements KeycloakAdminService {
     return keycloakConfig.getClientSecret() != null && !keycloakConfig.getClientSecret().isBlank();
   }
 
+  /**
+   * Delete realm roles that exist in Keycloak but not in database
+   *
+   * @param rolesResource Keycloak roles resource
+   * @param databaseRoles List of roles from database
+   * @return Number of roles deleted
+   */
   private int deleteRolesNotInDatabase(RolesResource rolesResource, List<RoleInfo> databaseRoles) {
     int deletedCount = 0;
 
